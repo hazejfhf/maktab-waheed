@@ -260,14 +260,14 @@
                 if (items.length > 0) {
                     var listHTML = items.map(function (item) {
                         return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #eee;">'
-                            + '<img src="' + (item.img || '') + '" style="width:35px;height:35px;object-fit:cover;border-radius:4px;">'
-                            + '<span style="font-weight:bold;font-size:0.9rem;">' + (item.title || '') + '</span>'
-                            + '<span style="color:#1a7f4b;font-size:0.85rem;margin-right:auto;">' + (item.calculatedPrice || item.price || '') + ' ج.م</span>'
+                            + '<img src="' + _esc(item.img || '') + '" style="width:35px;height:35px;object-fit:cover;border-radius:4px;">'
+                            + '<span style="font-weight:bold;font-size:0.9rem;">' + _esc(item.title || '') + '</span>'
+                            + '<span style="color:#1a7f4b;font-size:0.85rem;margin-right:auto;">' + _esc(item.calculatedPrice || item.price || '') + ' ج.م</span>'
                             + '</div>';
                     }).join('');
                     document.getElementById('track-products-list').innerHTML = listHTML;
                 } else {
-                    document.getElementById('track-products-list').innerHTML = found.productsDetails || found.products || 'لا توجد تفاصيل';
+                    document.getElementById('track-products-list').innerHTML = _esc(found.productsDetails || found.products || 'لا توجد تفاصيل');
                 }
 
                 renderReviewSection(found);

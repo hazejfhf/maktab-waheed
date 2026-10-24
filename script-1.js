@@ -870,10 +870,10 @@ function renderAdminOrdersTable() {
 
         tableBody.innerHTML += `
             <tr style="border-bottom: 1px solid #ddd; height: 60px;">
-                <td style="white-space:nowrap;"><strong>${id}</strong> <button onclick="_adminCopy('${id}')" style="background:#1b2a4a;color:#fff;border:none;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:0.7rem;">📋</button><br><small style="color:#777;">${date}</small></td>
-                <td>👤 <strong>${clientName}</strong><br>📞 ${phone}<br>📍 <small style="color:#555;">${address}</small></td>
-                <td><div style="max-width:250px; font-size:0.9rem; color:#333;">${productsList}</div></td>
-                <td style="color:#1a7f4b; font-weight:bold;">${price}<br><small style="color:#666; font-weight:normal;">(${payment})</small></td>
+                <td style="white-space:nowrap;"><strong>${_esc(id)}</strong> <button onclick="_adminCopy(this.dataset.c)" data-c="${_esc(id)}" style="background:#1b2a4a;color:#fff;border:none;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:0.7rem;">📋</button><br><small style="color:#777;">${_esc(date)}</small></td>
+                <td>👤 <strong>${_esc(clientName)}</strong><br>📞 ${_esc(phone)}<br>📍 <small style="color:#555;">${_esc(address)}</small></td>
+                <td><div style="max-width:250px; font-size:0.9rem; color:#333;">${_esc(productsList)}</div></td>
+                <td style="color:#1a7f4b; font-weight:bold;">${_esc(price)}<br><small style="color:#666; font-weight:normal;">(${_esc(payment)})</small></td>
                 <td>
                     <select onchange="changeOrderStatusFromAdmin(${index}, this.value)" style="padding:5px; border-radius:4px; border:1px solid #ccc; font-weight:bold; background:#fff;">
                         <option value="جاري التجهيز 📦" ${currentStatus.includes('التجهيز') ? 'selected' : ''}>جاري التجهيز 📦</option>
@@ -940,7 +940,7 @@ function renderAdminArchiveTable() {
     }
     archive.forEach(function(ord, i) {
         tbody.innerHTML += `<tr>
-            <td style="font-family:monospace;font-size:0.85rem;white-space:nowrap;">${ord.id || ord.orderId} <button onclick="_adminCopy('${ord.id||ord.orderId}')" style="background:#1b2a4a;color:#fff;border:none;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:0.7rem;">📋</button></td>
+            <td style="font-family:monospace;font-size:0.85rem;white-space:nowrap;">${_esc(ord.id || ord.orderId)} <button onclick="_adminCopy(this.dataset.c)" data-c="${_esc(ord.id||ord.orderId)}" style="background:#1b2a4a;color:#fff;border:none;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:0.7rem;">📋</button></td>
             <td>${ord.clientName || ord.name}</td>
             <td>${ord.clientPhone || ord.phone}</td>
             <td>${ord.finalPrice || ord.total}</td>
@@ -1108,11 +1108,11 @@ function renderAdminReviewsTable() {
         const reviewDate = rev.reviewDate || rev.date || "";
         body.innerHTML += `
             <tr style="border-bottom: 1px solid #eee;">
-                <td><strong style="color:var(--main-color); max-width:180px;">${rev.orderId || ""}</strong><br><small>${reviewDate}</small></td>
-                <td>👤 <strong>${clientName}</strong><br><small>📞 ${rev.clientPhone || ""}</small></td>
+                <td><strong style="color:var(--main-color); max-width:180px;">${_esc(rev.orderId || "")}</strong><br><small>${_esc(reviewDate)}</small></td>
+                <td>👤 <strong>${_esc(clientName)}</strong><br><small>📞 ${_esc(rev.clientPhone || "")}</small></td>
                 <td>${generateStarsHTML(rating)}</td>
-                <td style="max-width:300px; font-size:0.85rem; color:#555;">"${reviewText}"</td>
-                <td><small style="color:#555;">${productTitle}</small></td>
+                <td style="max-width:300px; font-size:0.85rem; color:#555;">"${_esc(reviewText)}"</td>
+                <td><small style="color:#555;">${_esc(productTitle)}</small></td>
                 <td style="text-align:center;">
                     <button onclick="deleteSingleReviewFromAdmin(${index})" style="background:var(--accent-color); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:0.85rem;">حذف 🗑</button>
                 </td>
@@ -1162,7 +1162,7 @@ function renderProductPageReviews() {
         // اسم المنتج
         const prod = products ? products.find(p => String(p.id) == pid) : null;
         const prodTitle = group[0].productDetails || (prod ? prod.title : (pid === 'general' ? 'تقييم عام' : `منتج #${pid}`));
-        reviewsContainer.innerHTML += `<div style="margin-bottom:18px;"><div style="font-size:0.85rem; font-weight:bold; color:var(--main-color); margin-bottom:6px; border-bottom:1px solid #eee; padding-bottom:4px;">📦 ${prodTitle}</div>`;
+        reviewsContainer.innerHTML += `<div style="margin-bottom:18px;"><div style="font-size:0.85rem; font-weight:bold; color:var(--main-color); margin-bottom:6px; border-bottom:1px solid #eee; padding-bottom:4px;">📦 ${_esc(prodTitle)}</div>`;
         group.forEach(rev => {
             const clientName = rev.clientName || rev.name || "عميل";
             const reviewText = rev.reviewText || rev.comment || "";
@@ -1170,11 +1170,11 @@ function renderProductPageReviews() {
             reviewsContainer.innerHTML += `
                 <div style="background:#f5f2eb; padding:12px; border-radius:8px; margin-bottom:8px; border-right:4px solid #1a7f4b; text-align:right;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                        <strong>👤 ${clientName}</strong>
-                        <small style="color:#999;">${reviewDate}</small>
+                        <strong>👤 ${_esc(clientName)}</strong>
+                        <small style="color:#999;">${_esc(reviewDate)}</small>
                     </div>
                     <div style="margin-bottom:5px;">${generateStarsHTML(rev.rating || 5)}</div>
-                    <p style="margin:0; color:#444; font-size:0.95rem;">"${reviewText}"</p>
+                    <p style="margin:0; color:#444; font-size:0.95rem;">"${_esc(reviewText)}"</p>
                 </div>
             `;
         });
@@ -1882,7 +1882,7 @@ function renderUserCouponsWallet() {
             <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:12px; border-radius:8px; border:1px solid #edf2f7; box-shadow:0 2px 5px rgba(0,0,0,0.02);">
                 <div>
                     <strong style="color:#14203a;">${coupon.text}</strong>
-                    <div style="font-size:0.8rem; color:#777; margin-top:4px;">كود الخصم: <span style="background:#d9962b; padding:2px 5px; font-weight:bold; border-radius:3px; color:#000;">${coupon.code}</span> <button onclick="_adminCopy('${coupon.code}')" style="background:linear-gradient(135deg,#1b2a4a,#1b2a4a);color:#fff;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:0.72rem;font-weight:700;vertical-align:middle;">📋 نسخ</button></div>
+                    <div style="font-size:0.8rem; color:#777; margin-top:4px;">كود الخصم: <span style="background:#d9962b; padding:2px 5px; font-weight:bold; border-radius:3px; color:#000;">${_esc(coupon.code)}</span> <button onclick="_adminCopy(this.dataset.c)" data-c="${_esc(coupon.code)}" style="background:linear-gradient(135deg,#1b2a4a,#1b2a4a);color:#fff;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:0.72rem;font-weight:700;vertical-align:middle;">📋 نسخ</button></div>
                 </div>
                 <div>${statusText}</div>
             </div>
@@ -2226,10 +2226,10 @@ function renderAdminUsersTable() {
         tbody.innerHTML += '<tr style="' + (u.isBanned ? 'background:#fbeff2;' : '') + '">' +
             '<td style="font-weight:bold;color:#1b2a4a;white-space:nowrap;">' + u.userId +
             ' <button onclick="_adminCopy(\'' + u.userId + '\')" title="نسخ ID" style="background:#1b2a4a;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:0.72rem;">📋</button></td>' +
-            '<td>' + u.name + '<br><small style="color:#999;font-size:0.75rem;">🔑 <span id="upass-' + i + '" style="filter:blur(3px);">' + (u.password||'—') + '</span>' +
+            '<td>' + _esc(u.name) + '<br><small style="color:#999;font-size:0.75rem;">🔑 <span id="upass-' + i + '" style="filter:blur(3px);">' + '••••••' + '</span>' +
             ' <button onclick="document.getElementById(\'upass-' + i + '\').style.filter=\'\';" style="background:none;border:none;cursor:pointer;font-size:0.8rem;">👁️</button>' +
-            ' <button onclick="_adminCopy(\'' + (u.password||'') + '\')" style="background:#1a7f4b;color:#fff;border:none;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:0.72rem;">📋</button></small></td>' +
-            '<td>' + (u.phone || '-') + '</td>' +
+            '</small></td>' +
+            '<td>' + _esc(u.phone || '-') + '</td>' +
             '<td><span style="background:' + (u.role==='admin'?'#d9962b':'#1b2a4a') + ';color:#fff;padding:3px 8px;border-radius:4px;font-size:0.8rem;">' + (u.role==='admin'?'أدمن مساعد':'عميل') + '</span></td>' +
             '<td>' + u.createdAt + '</td>' +
             '<td><span style="color:' + (u.isBanned?'#c7254e':'#1a7f4b') + ';font-weight:bold;">' + (u.isBanned?'محظور':'نشط') + '</span></td>' +

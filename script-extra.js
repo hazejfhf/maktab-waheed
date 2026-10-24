@@ -316,10 +316,10 @@ function renderEnhancedAdminUsersTable() {
             <tr style="${u.isBanned ? 'background:#fbeff2;' : active ? 'background:#f0fff4;' : ''}border-bottom:1px solid #eee;">
                 <td style="font-weight:bold;color:#1b2a4a;">${u.userId}</td>
                 <td>
-                    ${u.name}
+                    ${_esc(u.name)}
                     ${u.badge && u.badge !== 'none' ? `<span style="background:${badge.bg};color:${badge.color};font-size:0.75rem;padding:2px 6px;border-radius:4px;margin-right:4px;">${badge.label}</span>` : ''}
                 </td>
-                <td>${u.phone || '-'}</td>
+                <td>${_esc(u.phone || '-')}</td>
                 <td><span style="background:${ordersCount > 0 ? '#e8f5e9' : '#fafafa'};color:${ordersCount > 3 ? '#1a7f4b' : '#555'};padding:3px 8px;border-radius:4px;font-weight:bold;">${ordersCount} طلب</span></td>
                 <td><span style="color:${active ? '#1a7f4b' : '#999'};font-weight:bold;">${active ? '🟢 نشط' : '⚫ غير نشط'}</span></td>
                 <td><small style="color:#777;">${wheelInfo}</small></td>
@@ -373,7 +373,7 @@ function openUserWheelModal(index) {
     overlay.innerHTML = `
         <div class="store-modal-box" style="max-width:420px;text-align:right;direction:rtl;">
             <span class="store-modal-icon">🎡</span>
-            <div class="store-modal-title">صلاحيات العجلة - ${u.name}</div>
+            <div class="store-modal-title">صلاحيات العجلة - ${_esc(u.name)}</div>
             <div class="store-modal-body">
                 <div class="form-group" style="margin-bottom:15px;">
                     <label style="display:block;margin-bottom:5px;font-weight:bold;">حالة العجلة:</label>
@@ -455,8 +455,8 @@ function renderUserStats() {
                 <div style="display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid #ece7db;">
                     <span style="font-size:1.5rem;">${['🥇','🥈','🥉','4️⃣','5️⃣'][i]}</span>
                     <div style="flex:1;">
-                        <strong>${u.name}</strong>
-                        <div style="font-size:0.8rem;color:#777;">${u.phone}</div>
+                        <strong>${_esc(u.name)}</strong>
+                        <div style="font-size:0.8rem;color:#777;">${_esc(u.phone)}</div>
                     </div>
                     <span style="background:#e8f5e9;color:#1a7f4b;padding:4px 12px;border-radius:20px;font-weight:bold;">${u.ordersCount} طلب</span>
                 </div>
@@ -468,7 +468,7 @@ function renderUserStats() {
             ${nonBuyers.length === 0 ? '<p style="color:#1a7f4b;text-align:center;">الجميع اشترى 🎉</p>' : nonBuyers.slice(0, 10).map(u => `
                 <div style="display:flex;align-items:center;gap:12px;padding:8px;border-bottom:1px solid #ece7db;">
                     <span>👤</span>
-                    <div style="flex:1;"><strong>${u.name}</strong> <small style="color:#999;">${u.phone}</small></div>
+                    <div style="flex:1;"><strong>${_esc(u.name)}</strong> <small style="color:#999;">${_esc(u.phone)}</small></div>
                     <span style="background:#e6d5ae;color:#d35400;padding:2px 8px;border-radius:10px;font-size:0.8rem;">0 طلبات</span>
                 </div>
             `).join('')}
@@ -948,12 +948,12 @@ window.renderEnhancedAdminUsersTable = function() {
         <tr style="${u.isBanned ? 'background:#fbeff2;' : data.isActive ? 'background:#f0fff4;' : ''}border-bottom:1px solid #eee;">
             <td style="font-weight:bold;color:#1b2a4a;font-size:0.82rem;">${u.userId||'—'}</td>
             <td>
-                ${u.name}
+                ${_esc(u.name)}
                 ${u.badge && u.badge !== 'none'
                     ? `<span style="background:${badge.bg};color:${badge.color};font-size:0.72rem;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:3px;">${badge.label}</span>`
                     : ''}
             </td>
-            <td style="font-size:0.85rem;">${u.phone||'—'}</td>
+            <td style="font-size:0.85rem;">${_esc(u.phone||'—')}</td>
             <td style="text-align:center;">
                 <span style="background:${data.count>0?'#e8f5e9':'#fafafa'};color:${data.count>3?'#1a7f4b':'#555'};padding:3px 8px;border-radius:4px;font-weight:bold;">${data.count}</span>
                 ${data.todayCount > 0 ? `<div style="font-size:0.7rem;color:#d9962b;font-weight:bold;">اليوم: ${data.todayCount}</div>` : ''}
@@ -1001,7 +1001,7 @@ window.makeUserAdmin = function(index) {
     if (!u) return;
     users[index].isSubAdmin = true;
     localStorage.setItem('global_store_users', JSON.stringify(users));
-    showToast(`✅ تم تعيين ${u.name} كأدمن مساعد`);
+    showToast(`✅ تم تعيين ${_esc(u.name)} كأدمن مساعد`);
     if (typeof window.renderEnhancedAdminUsersTable === 'function') window.renderEnhancedAdminUsersTable();
 };
 
@@ -1011,7 +1011,7 @@ window.removeUserAdmin = function(index) {
     if (!u) return;
     users[index].isSubAdmin = false;
     localStorage.setItem('global_store_users', JSON.stringify(users));
-    showToast(`❌ تم إزالة ${u.name} من الأدمن المساعد`);
+    showToast(`❌ تم إزالة ${_esc(u.name)} من الأدمن المساعد`);
     if (typeof window.renderEnhancedAdminUsersTable === 'function') window.renderEnhancedAdminUsersTable();
 };
 
