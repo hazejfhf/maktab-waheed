@@ -2,7 +2,9 @@
 // ── أمان: تجزئة SHA-256 + تنظيف HTML ──
 async function _sha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('OR::'+t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 function _esc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-window._sha=_sha;window._esc=_esc;
+function _jsArg(v){return _esc(JSON.stringify(String(v==null?'':v)));}
+function _num(v){v=Number(v);return isFinite(v)?v:0;}
+window._sha=_sha;window._esc=_esc;window._jsArg=_jsArg;window._num=_num;
 // =========================================================================
 // 1. قاعدة البيانات الأساسية والتحميل التلقائي للإعدادات وهيكل البيانات الفاخر
 // =========================================================================
@@ -545,14 +547,14 @@ function trackUserOrder() {
                     ? `<button disabled style="background:#ddd; color:#888; border:none; padding:6px 14px; border-radius:6px; cursor:not-allowed; font-size:0.8rem;">⏳ متاح بعد التسليم</button>`
                     : alreadyRated
                     ? `<button disabled style="background:#d5f5e3; color:#1a7f4b; border:none; padding:6px 14px; border-radius:6px; font-size:0.8rem;">✅ قيّمت هذا المنتج</button>`
-                    : `<button onclick="openReviewModal(${item.id}, '${item.title}', '${foundOrder.orderId || foundOrder.id}')" style="background:linear-gradient(135deg,#1a7f4b,#1a7f4b); color:white; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:0.85rem; font-weight:bold;">⭐ قيّم الآن</button>`;
+                    : `<button onclick="openReviewModal(${_num(item.id)}, ${_jsArg(item.title)}, ${_jsArg(foundOrder.orderId || foundOrder.id)})" style="background:linear-gradient(135deg,#1a7f4b,#1a7f4b); color:white; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:0.85rem; font-weight:bold;">⭐ قيّم الآن</button>`;
                 html += `
                     <div style="display:flex; align-items:center; justify-content:space-between; background:#fff; padding:10px; border-radius:8px; border:1px solid #ddd; flex-wrap:wrap; gap:10px;">
                         <div style="display:flex; align-items:center; gap:10px;">
                             <img src="${_esc(item.img)}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
                             <div>
-                                <span style="font-weight:bold; font-size:0.9rem; display:block;">${item.title}</span>
-                                <span style="font-size:0.8rem; color:var(--accent-color);">${item.calculatedPrice || item.price} ج.م</span>
+                                <span style="font-weight:bold; font-size:0.9rem; display:block;">${_esc(item.title)}</span>
+                                <span style="font-size:0.8rem; color:var(--accent-color);">${_esc(item.calculatedPrice || item.price)} ج.م</span>
                             </div>
                         </div>
                         ${actionButton}
@@ -657,19 +659,19 @@ function renderAdminProductsTable(list) {
         return;
     }
     list.forEach(p => {
-        let dcHtml = p.discount > 0 ? `<br><span style="font-size:0.75rem; background:var(--accent-color); color:white; padding:2px 6px; border-radius:4px;">تنزيل ${p.discount}%</span>` : "";
+        let dcHtml = p.discount > 0 ? `<br><span style="font-size:0.75rem; background:var(--accent-color); color:white; padding:2px 6px; border-radius:4px;">تنزيل ${_num(p.discount)}%</span>` : "";
         body.innerHTML += `
             <tr style="border-bottom: 1px solid #eee;">
-                <td><img src="${p.img}" style="width:45px; height:45px; object-fit:cover; border-radius:4px;"></td>
+                <td><img src="${_esc(p.img)}" style="width:45px; height:45px; object-fit:cover; border-radius:4px;"></td>
                 <td>
-                    <div style="font-weight:bold; color:var(--main-color);">${p.title}</div>
-                    <div style="font-size:0.8rem; color:#666; max-width:260px;">${p.desc || ''}</div>
+                    <div style="font-weight:bold; color:var(--main-color);">${_esc(p.title)}</div>
+                    <div style="font-size:0.8rem; color:#666; max-width:260px;">${_esc(p.desc || '')}</div>
                 </td>
-                <td style="font-weight:bold;">${p.price} ج.م ${dcHtml}</td>
-                <td>${p.category}</td>
+                <td style="font-weight:bold;">${_num(p.price)} ج.م ${dcHtml}</td>
+                <td>${_esc(p.category)}</td>
                 <td style="text-align:center;">
-                    <button onclick="prepareProductEdit(${p.id})" style="background:#1b2a4a; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; margin-bottom:3px;">تعديل</button>
-                    <button onclick="deleteProductFromAdmin(${p.id})" style="background:var(--accent-color); color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">حذف</button>
+                    <button onclick="prepareProductEdit(${_num(p.id)})" style="background:#1b2a4a; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; margin-bottom:3px;">تعديل</button>
+                    <button onclick="deleteProductFromAdmin(${_num(p.id)})" style="background:var(--accent-color); color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">حذف</button>
                 </td>
             </tr>
         `;
@@ -1566,8 +1568,8 @@ function updateTrackingCodesBox() {
                 let status = order ? (order.status || order.orderStatus || 'جاري التجهيز 📦') : 'غير موجود';
                 let statusColor = status.includes('التسليم') ? '#27ae60' : status.includes('شحن') ? '#3498db' : '#e67e22';
                 return `<div style="display:flex;align-items:center;justify-content:space-between;background:#fff;padding:10px;border-radius:8px;border:1px solid #dde4ef;flex-wrap:wrap;gap:8px;">
-                    <span style="font-weight:700;color:#1b2a4a;font-size:0.95rem;direction:ltr;">${code}</span>
-                    <span style="color:${statusColor};font-size:0.85rem;font-weight:600;">${status}</span>
+                    <span style="font-weight:700;color:#1b2a4a;font-size:0.95rem;direction:ltr;">${_esc(code)}</span>
+                    <span style="color:${statusColor};font-size:0.85rem;font-weight:600;">${_esc(status)}</span>
                 </div>`;
             }).join('')}
         </div>
@@ -1757,8 +1759,8 @@ function renderAdminGiftsTableGrid() {
     wheelGiftsList.forEach((gift, idx) => {
         tableBody.innerHTML += `
             <tr>
-                <td style="font-weight:bold; color:#14203a;">🎁 ${gift.text}</td>
-                <td><span style="background:#d9962b; padding:3px 8px; border-radius:4px; font-weight:bold;">${gift.code}</span></td>
+                <td style="font-weight:bold; color:#14203a;">🎁 ${_esc(gift.text)}</td>
+                <td><span style="background:#d9962b; padding:3px 8px; border-radius:4px; font-weight:bold;">${_esc(gift.code)}</span></td>
                 <td style="text-align:center;"><button onclick="deleteGiftFromWheel(${idx})" style="background:#c7254e; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">حذف 🗑</button></td>
             </tr>
         `;
@@ -1795,9 +1797,9 @@ function renderAdminAdvancedGiftsTable() {
     advancedGiftsList.forEach((g, idx) => {
         tbody.innerHTML += `
             <tr style="border-bottom: 1px solid #eee; height: 40px;">
-                <td>${g.text}</td>
-                <td>${g.target}</td>
-                <td><span style="background:#d9962b; padding:2px 6px; border-radius:4px; font-weight:bold;">${g.code}</span></td>
+                <td>${_esc(g.text)}</td>
+                <td>${_esc(g.target)}</td>
+                <td><span style="background:#d9962b; padding:2px 6px; border-radius:4px; font-weight:bold;">${_esc(g.code)}</span></td>
                 <td>${g.duration > 0 ? g.duration + ' دقيقة' : 'فوري'}</td>
                 <td style="text-align:center;"><button onclick="deleteAdvancedGift(${idx})" style="background:#c7254e; color:white; border:none; padding:3px 8px; border-radius:4px; cursor:pointer;">حذف</button></td>
             </tr>
@@ -1881,7 +1883,7 @@ function renderUserCouponsWallet() {
         walletContainer.innerHTML += `
             <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:12px; border-radius:8px; border:1px solid #edf2f7; box-shadow:0 2px 5px rgba(0,0,0,0.02);">
                 <div>
-                    <strong style="color:#14203a;">${coupon.text}</strong>
+                    <strong style="color:#14203a;">${_esc(coupon.text)}</strong>
                     <div style="font-size:0.8rem; color:#777; margin-top:4px;">كود الخصم: <span style="background:#d9962b; padding:2px 5px; font-weight:bold; border-radius:3px; color:#000;">${_esc(coupon.code)}</span> <button onclick="_adminCopy(this.dataset.c)" data-c="${_esc(coupon.code)}" style="background:linear-gradient(135deg,#1b2a4a,#1b2a4a);color:#fff;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:0.72rem;font-weight:700;vertical-align:middle;">📋 نسخ</button></div>
                 </div>
                 <div>${statusText}</div>
@@ -2224,14 +2226,14 @@ function renderAdminUsersTable() {
     }
     users.forEach(function(u, i) {
         tbody.innerHTML += '<tr style="' + (u.isBanned ? 'background:#fbeff2;' : '') + '">' +
-            '<td style="font-weight:bold;color:#1b2a4a;white-space:nowrap;">' + u.userId +
-            ' <button onclick="_adminCopy(\'' + u.userId + '\')" title="نسخ ID" style="background:#1b2a4a;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:0.72rem;">📋</button></td>' +
+            '<td style="font-weight:bold;color:#1b2a4a;white-space:nowrap;">' + _esc(u.userId) +
+            ' <button data-c="' + _esc(u.userId) + '" onclick="_adminCopy(this.dataset.c)" title="نسخ ID" style="background:#1b2a4a;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:0.72rem;">📋</button></td>' +
             '<td>' + _esc(u.name) + '<br><small style="color:#999;font-size:0.75rem;">🔑 <span id="upass-' + i + '" style="filter:blur(3px);">' + '••••••' + '</span>' +
             ' <button onclick="document.getElementById(\'upass-' + i + '\').style.filter=\'\';" style="background:none;border:none;cursor:pointer;font-size:0.8rem;">👁️</button>' +
             '</small></td>' +
             '<td>' + _esc(u.phone || '-') + '</td>' +
             '<td><span style="background:' + (u.role==='admin'?'#d9962b':'#1b2a4a') + ';color:#fff;padding:3px 8px;border-radius:4px;font-size:0.8rem;">' + (u.role==='admin'?'أدمن مساعد':'عميل') + '</span></td>' +
-            '<td>' + u.createdAt + '</td>' +
+            '<td>' + _esc(u.createdAt) + '</td>' +
             '<td><span style="color:' + (u.isBanned?'#c7254e':'#1a7f4b') + ';font-weight:bold;">' + (u.isBanned?'محظور':'نشط') + '</span></td>' +
             '<td style="white-space:nowrap;">' +
             '<button onclick="toggleUserBan(' + i + ')" style="background:' + (u.isBanned?'#1a7f4b':'#c7254e') + ';color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;margin-left:4px;font-size:0.8rem;">' + (u.isBanned?'رفع الحظر':'حظر') + '</button>' +

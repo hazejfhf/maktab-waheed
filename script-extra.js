@@ -70,7 +70,7 @@ function populateCitiesAndDistricts() {
 
     citySelect.innerHTML = '<option value="">-- اختر المدينة / المركز --</option>';
     govData.cities.forEach(city => {
-        citySelect.innerHTML += `<option value="${city}">${city}</option>`;
+        citySelect.innerHTML += `<option value="${_esc(city)}">${_esc(city)}</option>`;
     });
 
     updateShippingPriceDisplay(govData.price);
@@ -119,7 +119,7 @@ function fillProvinceDropdown(selectId) {
     const current = sel.value;
     sel.innerHTML = '<option value="">-- اختر المحافظة --</option>';
     Object.keys(db).forEach(gov => {
-        sel.innerHTML += `<option value="${gov}" ${current === gov ? 'selected' : ''}>${gov}</option>`;
+        sel.innerHTML += `<option value="${_esc(gov)}" ${current === gov ? 'selected' : ''}>${_esc(gov)}</option>`;
     });
 }
 
@@ -136,12 +136,12 @@ function renderAdminGovernoratesTable() {
         const citiesCount = data.cities ? data.cities.length : 0;
         tbody.innerHTML += `
             <tr style="border-bottom:1px solid #eee;">
-                <td style="font-weight:bold;color:#14203a;">${gov}</td>
-                <td style="color:#1a7f4b;font-weight:bold;">${data.price} ج.م</td>
+                <td style="font-weight:bold;color:#14203a;">${_esc(gov)}</td>
+                <td style="color:#1a7f4b;font-weight:bold;">${_num(data.price)} ج.م</td>
                 <td style="font-size:0.82rem;color:#555;">${citiesCount} مدينة</td>
                 <td style="text-align:center;">
-                    <button onclick="openEditGovModal('${gov}')" style="background:#1b2a4a;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;margin-left:4px;font-size:0.8rem;">تعديل ✏️</button>
-                    <button onclick="deleteGovernorate('${gov}')" style="background:#c7254e;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:0.8rem;">حذف 🗑</button>
+                    <button onclick="openEditGovModal(${_jsArg(gov)})" style="background:#1b2a4a;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;margin-left:4px;font-size:0.8rem;">تعديل ✏️</button>
+                    <button onclick="deleteGovernorate(${_jsArg(gov)})" style="background:#c7254e;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:0.8rem;">حذف 🗑</button>
                 </td>
             </tr>
         `;
@@ -598,8 +598,8 @@ function renderWheelSlotsAdmin() {
             <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:8px;border:1px solid #eee;margin-bottom:8px;">
                 <div style="width:30px;height:30px;background:${slot.color || colors[idx % colors.length]};border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.2);flex-shrink:0;"></div>
                 <div style="flex:1;">
-                    <strong style="color:#14203a;">${slot.text}</strong>
-                    <div style="font-size:0.8rem;color:#777;">كود: ${slot.code} | نوع: ${slot.type === 'no_luck' ? '❌ خسارة' : slot.type === 'free_spin' ? '🔄 لفة مجانية' : '🎁 خصم'}</div>
+                    <strong style="color:#14203a;">${_esc(slot.text)}</strong>
+                    <div style="font-size:0.8rem;color:#777;">كود: ${_esc(slot.code)} | نوع: ${slot.type === 'no_luck' ? '❌ خسارة' : slot.type === 'free_spin' ? '🔄 لفة مجانية' : '🎁 خصم'}</div>
                 </div>
                 <div style="display:flex;gap:5px;">
                     <button onclick="editWheelSlot(${idx})" style="background:#1b2a4a;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.75rem;">تعديل</button>
@@ -677,11 +677,11 @@ function editWheelSlot(idx) {
             <div class="store-modal-body">
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="display:block;margin-bottom:5px;font-weight:bold;">النص المعروض:</label>
-                    <input type="text" id="edit-slot-text" value="${slot.text}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;">
+                    <input type="text" id="edit-slot-text" value="${_esc(slot.text)}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;">
                 </div>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="display:block;margin-bottom:5px;font-weight:bold;">الكود:</label>
-                    <input type="text" id="edit-slot-code" value="${slot.code}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;">
+                    <input type="text" id="edit-slot-code" value="${_esc(slot.code)}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;">
                 </div>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="display:block;margin-bottom:5px;font-weight:bold;">النوع:</label>
@@ -808,23 +808,23 @@ function openSiteTextEditor() {
             <div class="store-modal-body">
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="font-weight:bold;display:block;margin-bottom:5px;">شعار الموقع الرئيسي:</label>
-                    <input type="text" id="ct-logo" value="${config.siteName || 'مكتب رحيم'}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;">
+                    <input type="text" id="ct-logo" value="${_esc(config.siteName || 'مكتب رحيم')}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;">
                 </div>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="font-weight:bold;display:block;margin-bottom:5px;">نص الهيدر الترحيبي:</label>
-                    <input type="text" id="ct-header" value="${customTexts.headerWelcome || 'أهلاً بك في متجرنا'}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;">
+                    <input type="text" id="ct-header" value="${_esc(customTexts.headerWelcome || 'أهلاً بك في متجرنا')}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;">
                 </div>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="font-weight:bold;display:block;margin-bottom:5px;">رقم التواصل (واتساب):</label>
-                    <input type="tel" id="ct-whatsapp" value="${customTexts.whatsappNum || ''}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;" placeholder="201xxxxxxxxx">
+                    <input type="tel" id="ct-whatsapp" value="${_esc(customTexts.whatsappNum || '')}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;" placeholder="201xxxxxxxxx">
                 </div>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="font-weight:bold;display:block;margin-bottom:5px;">نص زر العجلة:</label>
-                    <input type="text" id="ct-wheel-btn" value="${customTexts.wheelBtnText || 'دوّر العجلة 🎡'}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;">
+                    <input type="text" id="ct-wheel-btn" value="${_esc(customTexts.wheelBtnText || 'دوّر العجلة 🎡')}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;">
                 </div>
                 <div class="form-group">
                     <label style="font-weight:bold;display:block;margin-bottom:5px;">نص الفوتر:</label>
-                    <input type="text" id="ct-footer" value="${customTexts.footerText || '© 2025 جميع الحقوق محفوظة'}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;">
+                    <input type="text" id="ct-footer" value="${_esc(customTexts.footerText || '© 2025 جميع الحقوق محفوظة')}" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box;">
                 </div>
             </div>
             <div class="store-modal-btns">
@@ -1099,15 +1099,15 @@ window.renderUserStats = function() {
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:15px;">
         <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-right:4px solid #d9962b;">
             <div style="font-size:0.82rem;color:#777;margin-bottom:4px;">🏆 أكثر شراءً اليوم</div>
-            <div style="font-weight:bold;color:#14203a;">${todayBuyers[0] ? todayBuyers[0].name + ' (' + todayBuyers[0].todayCount + ' طلبات اليوم)' : '—'}</div>
+            <div style="font-weight:bold;color:#14203a;">${todayBuyers[0] ? _esc(todayBuyers[0].name) + ' (' + todayBuyers[0].todayCount + ' طلبات اليوم)' : '—'}</div>
         </div>
         <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-right:4px solid #1b2a4a;">
             <div style="font-size:0.82rem;color:#777;margin-bottom:4px;">📅 أكثر شراءً هذا الشهر</div>
-            <div style="font-weight:bold;color:#14203a;">${topMonthBuyer && topMonthBuyer.mcount > 0 ? topMonthBuyer.name + ' (' + topMonthBuyer.mcount + ' طلبات)' : '—'}</div>
+            <div style="font-weight:bold;color:#14203a;">${topMonthBuyer && topMonthBuyer.mcount > 0 ? _esc(topMonthBuyer.name) + ' (' + topMonthBuyer.mcount + ' طلبات)' : '—'}</div>
         </div>
         <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-right:4px solid #1a7f4b;">
             <div style="font-size:0.82rem;color:#777;margin-bottom:4px;">🥇 أكثر شراءً عموماً</div>
-            <div style="font-weight:bold;color:#14203a;">${topBuyer && topBuyer.allCount > 0 ? topBuyer.name + ' (' + topBuyer.allCount + ' طلب)' : '—'}</div>
+            <div style="font-weight:bold;color:#14203a;">${topBuyer && topBuyer.allCount > 0 ? _esc(topBuyer.name) + ' (' + topBuyer.allCount + ' طلب)' : '—'}</div>
         </div>
     </div>`;
 };

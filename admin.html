@@ -268,31 +268,29 @@
     <div id="admin-login-box" class="settings-box" style="max-width:450px;margin:60px auto;text-align:center;">
       <!-- واجهة الدخول الأصلية -->
       <div id="login-form-view">
-        <h3 style="margin-bottom:10px;"> لوحة الدعم</h3>
-        <p style="color:#888;font-size:0.85rem;margin-bottom:20px;">أدخل رسالتك </p>
+        <h3 style="margin-bottom:10px;">لوحة الإدارة</h3>
+        <p style="color:#888;font-size:0.85rem;margin-bottom:20px;">سجّل الدخول للمتابعة</p>
         <div class="form-group" style="text-align:right;">
-          <label> الجيميل:</label>
-          <input type="email" id="admin-email-input" placeholder="ادخل الجيميل" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false" dir="ltr"
+          <label>البريد الإلكتروني</label>
+          <input type="email" id="admin-email-input" placeholder="name@example.com" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false" dir="ltr"
             onkeydown="if(event.key==='Enter') document.getElementById('admin-pass-input').focus()">
         </div>
         <div class="form-group" style="text-align:right;">
-          <label> كلمة السر / رسالتك:</label>
+          <label>كلمة المرور</label>
           <div style="position:relative;">
-            <input type="password" id="admin-pass-input" placeholder="أدخل رسالتك " autocomplete="current-password" style="padding-left:62px;"
+            <input type="password" id="admin-pass-input" placeholder="كلمة المرور" autocomplete="current-password" style="padding-left:62px;"
               onkeydown="if(event.key==='Enter') unlockAdminPanel()">
             <button type="button" class="pw-eye" onclick="var i=document.getElementById('admin-pass-input');var h=i.type==='password';i.type=h?'text':'password';this.textContent=h?'إخفاء':'إظهار';">إظهار</button>
           </div>
         </div>
-        <button class="btn-submit" style="width:100%;" onclick="unlockAdminPanel()">ارسال 🚀</button>
-        <div id="sub-admin-quick-login"
-          style="display:none;margin-top:15px;border-top:1px solid #eee;padding-top:15px;">
-          <p style="color:#d9962b;font-size:0.85rem;margin-bottom:10px;">👑 أنت مستخدم لديك صلاحية أدمن مساعد</p>
-          <button class="btn-submit" style="width:100%;background:linear-gradient(135deg,#d9962b,#a8884f);"
-            onclick="quickSubAdminLogin()">دخول كأدمن 🔑</button>
+        <div id="admin-login-err" role="alert" style="display:none;margin:0 0 12px;padding:10px;border-radius:8px;background:#fbeff2;color:#c7254e;font-size:0.9rem;"></div>
+        <button class="btn-submit" style="width:100%;" onclick="unlockAdminPanel()">تسجيل الدخول</button>
+        <div style="margin-top:14px;font-size:0.8rem;">
+          <a href="#" onclick="showSupportPage();return false;" style="color:#888;text-decoration:underline;">تواصل مع الدعم</a>
         </div>
       </div>
 
-      <!-- صفحة الدعم (تظهر عند كلمة مرور خاطئة) -->
+      <!-- صفحة الدعم (مستقلة — بتفتح بالرابط فقط، مش بعد فشل الدخول) -->
       <div id="support-page-view" style="display:none;text-align:right;">
         <div style="text-align:center;margin-bottom:20px;">
           <div style="font-size:3rem;margin-bottom:10px;">🎧</div>
@@ -1010,19 +1008,19 @@
         return;
       }
       list.forEach(p => {
-        const dcHtml = p.discount > 0 ? `<br><span style="font-size:0.75rem;background:var(--accent-color);color:#fff;padding:2px 6px;border-radius:4px;">تنزيل ${p.discount}%</span>` : '';
+        const dcHtml = p.discount > 0 ? `<br><span style="font-size:0.75rem;background:var(--accent-color);color:#fff;padding:2px 6px;border-radius:4px;">تنزيل ${_num(p.discount)}%</span>` : '';
         const colorsHtml = (p.availableColors || []).map(c =>
-          `<span style="display:inline-block;width:14px;height:14px;background:${c};border-radius:50%;border:1px solid #ccc;margin:1px;" title="${c}"></span>`
+          `<span style="display:inline-block;width:14px;height:14px;background:${/^#[0-9a-fA-F]{3,8}$/.test(String(c)) ? c : '#ccc'};border-radius:50%;border:1px solid #ccc;margin:1px;" title="${_esc(c)}"></span>`
         ).join('');
         body.innerHTML += `
       <tr style="border-bottom:1px solid #eee;">
-        <td><img src="${p.img}" style="width:45px;height:45px;object-fit:cover;border-radius:4px;"></td>
-        <td><div style="font-weight:bold;color:var(--main-color);">${p.title}</div><div style="font-size:0.78rem;color:#666;max-width:220px;">${p.desc || ''}</div></td>
-        <td style="font-weight:bold;">${p.price} ج.م${dcHtml}</td>
+        <td><img src="${_esc(p.img)}" style="width:45px;height:45px;object-fit:cover;border-radius:4px;"></td>
+        <td><div style="font-weight:bold;color:var(--main-color);">${_esc(p.title)}</div><div style="font-size:0.78rem;color:#666;max-width:220px;">${_esc(p.desc || '')}</div></td>
+        <td style="font-weight:bold;">${_num(p.price)} ج.م${dcHtml}</td>
         <td>${colorsHtml || '—'}</td>
         <td style="text-align:center;">
-          <button onclick="prepareProductEdit(${p.id})" style="background:#1b2a4a;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;display:block;width:100%;margin-bottom:4px;">تعديل ✏️</button>
-          <button onclick="deleteProductFromAdmin(${p.id})" style="background:var(--accent-color);color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;display:block;width:100%;">حذف 🗑</button>
+          <button onclick="prepareProductEdit(${_num(p.id)})" style="background:#1b2a4a;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;display:block;width:100%;margin-bottom:4px;">تعديل ✏️</button>
+          <button onclick="deleteProductFromAdmin(${_num(p.id)})" style="background:var(--accent-color);color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;display:block;width:100%;">حذف 🗑</button>
         </td>
       </tr>`;
       });
@@ -1322,13 +1320,13 @@
       tbody.innerHTML = messages.map((m, i) => `
     <tr style="${!m.read ? 'background:#fff8e1;font-weight:bold;' : ''}">
       <td>${i + 1}</td>
-      <td>${m.name}</td>
-      <td>${m.phone}</td>
-      <td style="max-width:300px;white-space:pre-wrap;word-break:break-word;">${m.message}</td>
-      <td style="white-space:nowrap;font-size:0.82rem;">${m.date}</td>
+      <td>${_esc(m.name)}</td>
+      <td>${_esc(m.phone)}</td>
+      <td style="max-width:300px;white-space:pre-wrap;word-break:break-word;">${_esc(m.message)}</td>
+      <td style="white-space:nowrap;font-size:0.82rem;">${_esc(m.date)}</td>
       <td>
-        <button onclick="markSupportRead(${m.id})" style="background:#1a7f4b;color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:0.82rem;margin-bottom:4px;">✅ قراءة</button>
-        <button onclick="deleteSupportMessage(${m.id})" style="background:#c7254e;color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:0.82rem;">🗑️ حذف</button>
+        <button onclick="markSupportRead(${_num(m.id)})" style="background:#1a7f4b;color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:0.82rem;margin-bottom:4px;">✅ قراءة</button>
+        <button onclick="deleteSupportMessage(${_num(m.id)})" style="background:#c7254e;color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:0.82rem;">🗑️ حذف</button>
       </td>
     </tr>
   `).join('');
@@ -1379,26 +1377,20 @@
     window.unlockAdminPanel = async function () {
       const entered = (document.getElementById('admin-pass-input') || {}).value || '';
       const ok = _origUnlock ? await _origUnlock.apply(this, arguments) : false;
+      const errBox = document.getElementById('admin-login-err');
       if (!ok) {
-        if (/[?&]debug=1/.test(location.search) || ((document.getElementById('admin-email-input') || {}).value || '').trim()) {
-          const c = window.__adminLoginErr || 'unknown';
-          const hint = /user-not-found|invalid-credential|invalid-email/.test(c) ? 'بيانات الدخول غير صحيحة'
-            : /wrong-password/.test(c) ? 'الباسورد غلط'
-            : /not-in-admins/.test(c) ? 'الحساب صح لكن مش مسجّل كأدمن'
-            : /too-many/.test(c) ? 'محاولات كتير، استنى شوية' : 'راجع إعدادات Firebase (Email/Password مفعّل؟ Firestore مفعّل؟)';
-          alert('تشخيص الدخول:\n' + String(c).split('|')[0] + '\n' + hint);
-        }
-        showSupportPage(); return;
+        if (/[?&]debug=1/.test(location.search)) console.warn('admin login:', String(window.__adminLoginErr || 'unknown').split('|')[0]);
+        if (errBox) { errBox.textContent = 'بيانات الدخول غير صحيحة'; errBox.style.display = 'block'; }
+        return false;
       }
+      if (errBox) errBox.style.display = 'none';
       applySubAdminUi();
       refreshTabBadges();
       if (!window.__badgeTimer) window.__badgeTimer = setInterval(refreshTabBadges, 30000);
+      return true;
     };
 
-    // دخول الأدمن المساعد القديم (localStorage) اتلغى — الأدمن المساعد بيدخل بحساب Firebase خاص بيه (level:'sub')
-    function quickSubAdminLogin() { showToast('⛔ سجّل الدخول بحساب الأدمن المساعد الخاص بك'); }
-    window.loginAsSubAdminForUser = function () { showToast('⛔ غير متاح'); };
-    function checkCurrentUserIsSubAdmin() { /* ملغي */ }
+    // تنظيف أي علامات قديمة من المتصفح (الصلاحية من Firebase فقط)
     try { localStorage.removeItem('sub_admin_logged'); localStorage.removeItem('sub_admin_viewing_user'); localStorage.removeItem('store_sub_admin_pass'); } catch (e) {}
 
     document.addEventListener('DOMContentLoaded', function () {

@@ -41,21 +41,37 @@ try { if (localStorage.getItem('site_theme') === 'dark') (document.body || docum
   document.body.appendChild(bar);
 
   // قائمة "المزيد": كل صفحات الموقع في مكان واحد
-  var pages = [
-    ['index.html', '🏠', 'الرئيسية'], ['shop.html', '👕', 'المعرض'], ['gifts.html', '🎁', 'الهدايا وعجلة الحظ'],
-    ['track.html', '📦', 'تتبع الطلب'], ['cart.html', '🛒', 'السلة'], ['profile.html', '👤', 'حسابي'],
-    ['login.html', '🔑', 'تسجيل الدخول'], ['login.html?mode=register', '✨', 'إنشاء حساب'], ['admin.html', '🛠️', 'الدعم']
-  ];
+  function curUser() { try { var u = JSON.parse(localStorage.getItem('current_user')); return (u && u.name) ? u : null; } catch (e) { return null; } }
+  function pagesFor(loggedIn) {
+    var p = [
+      ['index.html', '🏠', 'الرئيسية'], ['shop.html', '👕', 'المعرض'], ['gifts.html', '🎁', 'الهدايا وعجلة الحظ'],
+      ['track.html', '📦', 'تتبع الطلب'], ['cart.html', '🛒', 'السلة'], ['profile.html', '👤', 'حسابي']
+    ];
+    if (!loggedIn) { p.push(['login.html', '🔑', 'تسجيل الدخول'], ['login.html?mode=register', '✨', 'إنشاء حساب']); }
+    p.push(['admin.html', '🛠️', 'الدعم']);
+    return p;
+  }
+  function gridHtml(loggedIn) {
+    return pagesFor(loggedIn).map(function (p) {
+      return '<a href="' + p[0] + '" class="' + (p[0] === page ? 'on' : '') + '"><i>' + p[1] + '</i><span>' + p[2] + '</span></a>';
+    }).join('') + (loggedIn ? '<a href="#" data-logout><i>🚪</i><span>تسجيل الخروج</span></a>' : '');
+  }
   var sheet = document.createElement('div'); sheet.className = 'mz'; sheet.hidden = true;
   sheet.innerHTML = '<div class="mz-bg" data-x></div><div class="mz-box" role="dialog" aria-modal="true" aria-label="كل الصفحات">' +
     '<div class="mz-head"><b>كل الصفحات</b><button type="button" class="mz-close" data-x aria-label="إغلاق">×</button></div>' +
-    '<div class="mz-grid">' + pages.map(function (p) {
-      return '<a href="' + p[0] + '" class="' + (p[0] === page ? 'on' : '') + '"><i>' + p[1] + '</i><span>' + p[2] + '</span></a>';
-    }).join('') + '</div></div>';
+    '<div class="mz-grid" id="mz-grid"></div></div>';
   document.body.appendChild(sheet);
   function openMore() { sheet.hidden = false; document.documentElement.classList.add('mz-lock'); }
   function closeMore() { sheet.hidden = true; document.documentElement.classList.remove('mz-lock'); }
   document.addEventListener('click', function (e) {
+    var lo = e.target.closest('[data-logout]');
+    if (lo) {
+      e.preventDefault();
+      var go = function () { location.href = 'index.html'; };
+      if (window.FBAuth && window.FBAuth.logout) window.FBAuth.logout().then(go, go);
+      else { try { localStorage.removeItem('current_user'); } catch (x) {} go(); }
+      return;
+    }
     if (e.target.closest('[data-more]')) openMore(); else if (e.target.closest('[data-x]')) closeMore();
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMore(); });
@@ -79,7 +95,12 @@ try { if (localStorage.getItem('site_theme') === 'dark') (document.body || docum
     if (c) c.textContent = n; if (b) { b.textContent = n; b.hidden = !n; }
     var u = null; try { u = JSON.parse(localStorage.getItem('current_user')); } catch (e) {}
     var lb = document.getElementById('nav-login-btn');
-    if (u && u.name && lb) { lb.textContent = 'أهلاً، ' + String(u.name).split(' ')[0]; lb.href = 'profile.html'; }
+    if (lb) {
+      if (u && u.name) { lb.textContent = 'أهلاً، ' + String(u.name).split(' ')[0]; lb.href = 'profile.html'; }
+      else { lb.textContent = 'تسجيل الدخول'; lb.href = 'login.html'; }
+    }
+    var st = u && u.name ? '1' : '0', g = document.getElementById('mz-grid');
+    if (g && g.getAttribute('data-st') !== st) { g.innerHTML = gridHtml(st === '1'); g.setAttribute('data-st', st); }
   }
   sync(); setInterval(sync, 1200);
 })();
