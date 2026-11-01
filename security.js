@@ -4,16 +4,23 @@
   var LS = localStorage;
   function jget(k, d) { try { return JSON.parse(LS.getItem(k)) || d; } catch (e) { return d; } }
 
-  // 1) منع الـ iframe (Clickjacking)
-  if (window.top !== window.self) { try { window.top.location = window.location; } catch (e) { document.documentElement.style.display = 'none'; } }
+  // 1) منع الـ iframe (Clickjacking) — نخفي الصفحة الأول وبعدين نحاول نطلع بره الإطار.
+  //    مش كفاية لوحدها: لازم تضيف headers على الاستضافة (راجع التقرير: X-Frame-Options / frame-ancestors).
+  if (window.top !== window.self) {
+    document.documentElement.style.display = 'none';
+    try { window.top.location = window.location; } catch (e) {}
+  }
 
   // 2) Math.random آمن (أكواد التتبع والعجلة كانت متوقعة)
   var _r = Math.random;
   Math.random = function () { try { return crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296; } catch (e) { return _r(); } };
 
   // 3) تنظيف النصوص من وسوم HTML قبل التخزين/الإرسال
+  //    ⚠️ ده تنظيف "أدب" على العميل فقط — أي حد يقدر يتجاوزه ويكتب في Firestore مباشرة بالـ API.
+  //    الحماية الحقيقية: (أ) قواعد Firestore بتحدد الحقول والأطوال، (ب) sanitize() في firebase-db.js
+  //    بيعطّل أي HTML واصل من السيرفر، (ج) كل عرض في لوحة الأدمن بيعدّي على _esc().
   function clean(o) {
-    if (typeof o === 'string') return o.replace(/[<>]/g, '').slice(0, 500);
+    if (typeof o === 'string') return o.replace(/[<>\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/javascript\s*:/gi, '').slice(0, 500);
     if (Array.isArray(o)) return o.map(clean);
     if (o && typeof o === 'object') { var r = {}; Object.keys(o).forEach(function (k) { r[k] = (k === 'createdAt') ? o[k] : clean(o[k]); }); return r; }
     return o;
@@ -71,7 +78,10 @@
         if (!/^01[0125]\d{8}$/.test(ph)) { alert('رقم الموبايل غير صحيح'); return Promise.resolve(); }
         order.clientPhone = ph;
       } catch (e) {}
-      return f.call(this, clean(order));
+      var ALLOWED = ['orderId','id','clientName','customerName','name','clientPhone','customerPhone','phone','clientAddress','customerAddress','address','paymentMethod','payment','transferNumber','productsDetails','products','orderDate','date','orderStatus','status','finalPrice','bill','total','cartItems','items','itemsCount','timestamp','cartSnapshot','totalNum','catalogSubtotal','suspicious'];
+      var safe = {}; ALLOWED.forEach(function (k) { if (order[k] !== undefined) safe[k] = order[k]; });
+      safe.orderStatus = 'جاري التجهيز 📦'; safe.status = safe.orderStatus; // الحالة الأولية ثابتة
+      return f.call(this, clean(safe));
     };
     window.FB_saveOrder.__w = 1;
   }
@@ -83,6 +93,19 @@
     if (ch) LS.setItem('global_store_users', JSON.stringify(us));
     // تسجيل الدخول بقى عن طريق Firebase Auth (الفحص والقفل على السيرفر)
   }
+
+  // 8) حارس لوحة الأدمن: لو الجلسة خلصت أو مش أدمن → نقفل المحتوى فوراً (الحماية الفعلية للبيانات في قواعد Firestore)
+  function guardAdminPanel() {
+    var content = document.getElementById('admin-content'), box = document.getElementById('admin-login-box');
+    if (!content) return;
+    var A = window.FBAuth;
+    if (!(A && A.isAdminSession) && content.style.display !== 'none') {
+      content.style.display = 'none'; if (box) box.style.display = '';
+      window.__adm = false;
+    }
+  }
+  window.addEventListener('fbauth-changed', guardAdminPanel);
+  window.SEC = { esc: function (t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }, clean: clean };
 
   window.addEventListener('load', function () {
     fixCoupons(); wrapSaveOrder(); migrateUsers();

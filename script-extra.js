@@ -236,6 +236,7 @@ window.renderAdminOrdersTable = function() {
         let price = ord.finalPrice || ord.bill || ord.total || '0 ج.م';
         let payment = ord.paymentMethod || ord.payment || 'COD';
         let currentStatus = ord.orderStatus || ord.status || 'جاري التجهيز 📦';
+        [id, date, clientName, phone, address, productsList, price, payment, currentStatus] = [id, date, clientName, phone, address, productsList, price, payment, currentStatus].map(function (v) { return window._esc(v); });
         let isNew = index === 0 ? 'background:linear-gradient(135deg,#fff9c4,#fff);border-right:4px solid #f1c40f;' : '';
 
         tableBody.innerHTML += `

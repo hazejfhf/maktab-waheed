@@ -13,3 +13,9 @@
 
 ## باسورد الأدمن
 الأدمن بيدخل بحساب Firebase Auth (مش من الكود). لتغيير الباسورد: Firebase Console → Authentication → Users → حساب الأدمن (admin@officeraheem.app) → ⋮ → Reset password / أو احذفه وأضفه من جديد بالباسورد الجديد، وحافظ إن مستند admins/<UID> يفضل مطابق للـ UID.
+
+## تحديث الأمان (مهم)
+- انشر `firestore.rules` الجديد: Firestore → Rules → الصق → Publish.
+- الأدمن الكامل: مستند `admins/<UID>` (أي حقول). الأدمن المساعد: أنشئ له حساب Firebase Auth عادي (مش دومين users.officeraheem.app) + مستند `admins/<UID>` فيه حقل `level` = `sub` → يشوف الطلبات والتقييمات فقط، والسيرفر يمنعه من المنتجات والإعدادات والمستخدمين.
+- دخول الأدمن المساعد القديم بـ localStorage اتلغى.
+- تتبع الطلب بقى من جهاز العميل فقط (قراءة orders بقت للأدمن فقط).

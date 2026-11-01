@@ -920,7 +920,7 @@
 
     // ═══ switchAdminTab المحسّنة ═══
     function switchAdminTab(tabName, e) {
-      const isSubAdmin = (localStorage.getItem('sub_admin_logged') === '1');
+      const isSubAdmin = !!(window.FBAuth && window.FBAuth.adminLevel === 'sub');
       const hiddenForSub = ['settings-tab', 'users-tab'];
       if (isSubAdmin && hiddenForSub.includes(tabName)) {
         showToast('⛔ صلاحية مقيّدة على حسابك');
@@ -1043,13 +1043,13 @@
         const itemsText = items.length > 0 ? items.map(i => i.title).join('، ') : (ord.productsDetails || ord.products || '—');
         const count = items.length ? items.reduce((t, i) => t + (parseInt(i.qty) || 1), 0) : (ord.itemsCount || 1);
         tbody.innerHTML += `<tr>
-      <td style="font-family:monospace;font-size:0.83rem;">${ord.id || ord.orderId}</td>
-      <td>${ord.clientName || ord.name || '—'}</td>
-      <td>${ord.clientPhone || ord.phone || '—'}</td>
-      <td style="font-size:0.82rem;color:#555;">${itemsText} <span style="background:#e8f5e9;color:#1a7f4b;padding:1px 6px;border-radius:4px;font-weight:bold;">(${count} قطعة)</span></td>
-      <td style="color:#1a7f4b;font-weight:bold;">${ord.finalPrice || ord.total || '—'}</td>
+      <td style="font-family:monospace;font-size:0.83rem;">${_esc(ord.id || ord.orderId)}</td>
+      <td>${_esc(ord.clientName || ord.name || '—')}</td>
+      <td>${_esc(ord.clientPhone || ord.phone || '—')}</td>
+      <td style="font-size:0.82rem;color:#555;">${_esc(itemsText)} <span style="background:#e8f5e9;color:#1a7f4b;padding:1px 6px;border-radius:4px;font-weight:bold;">(${count} قطعة)</span></td>
+      <td style="color:#1a7f4b;font-weight:bold;">${_esc(ord.finalPrice || ord.total || '—')}</td>
       <td><span style="color:#1a7f4b;font-weight:bold;">تم التسليم ✅</span></td>
-      <td style="font-size:0.8rem;">${ord.archivedAt || '—'}</td>
+      <td style="font-size:0.8rem;">${_esc(ord.archivedAt || '—')}</td>
     </tr>`;
       });
     };
@@ -1269,13 +1269,7 @@
     function showSupportPage(wrongPass) {
       document.getElementById('login-form-view').style.display = 'none';
       document.getElementById('support-page-view').style.display = 'block';
-      // أضف الكلمة المدخلة تلقائياً في حقل الرسالة
-      if (wrongPass) {
-        const msgInput = document.getElementById('support-msg-input');
-        if (msgInput) {
-          msgInput.value = 'ماتريد ارساله هو: ' + wrongPass;
-        }
-      }
+      // (اتشال نسخ كلمة السر المكتوبة لحقل الرسالة: كانت بتسرّب كلمة السر لو الأدمن غلط في الكتابة)
     }
 
     function submitSupportMessage() {
@@ -1371,80 +1365,44 @@
     }
 
     // ═══ إعداد الأدمن بعد الدخول ═══
+    // الصلاحية بتيجي من حساب Firebase الحقيقي فقط (مستند admins/<uid>) والسيرفر هو اللي بيفرضها.
+    // مفيش أي علامة في localStorage بتفتح اللوحة أو بتدّي صلاحية (كانت ثغرة: أي حد يكتب sub_admin_logged=1 من الكونسول).
+    function applySubAdminUi() {
+      const sub = window.FBAuth && window.FBAuth.adminLevel === 'sub';
+      const n = document.getElementById('sub-admin-notice');
+      if (n) n.style.display = sub ? 'flex' : 'none';
+      ['tbtn-settings', 'tbtn-users'].forEach(function (id) {
+        const b = document.getElementById(id); if (b) b.style.display = sub ? 'none' : '';
+      });
+    }
     const _origUnlock = window.unlockAdminPanel;
     window.unlockAdminPanel = async function () {
       const entered = (document.getElementById('admin-pass-input') || {}).value || '';
-      const subPass = localStorage.getItem('store_sub_admin_pass') || '\u0000none';
-      if (entered === subPass) {
-        // دخول أدمن مساعد
-        localStorage.setItem('sub_admin_logged', '1');
-        document.getElementById('admin-login-box').style.display = 'none';
-        document.getElementById('admin-content').style.display = 'block';
-        document.getElementById('sub-admin-notice').style.display = 'flex';
-        document.getElementById('tbtn-settings').style.display = 'none';
-        document.getElementById('tbtn-users').style.display = 'none';
-        showToast('✅ دخلت كأدمن مساعد');
-        refreshAdminStats && refreshAdminStats();
-        typeof renderAdminOrdersTable === 'function' && renderAdminOrdersTable();
-        typeof renderEnhancedAdminUsersTable === 'function' && renderEnhancedAdminUsersTable();
-        return;
-      }
-      localStorage.removeItem('sub_admin_logged');
       const ok = _origUnlock ? await _origUnlock.apply(this, arguments) : false;
       if (!ok) {
         if (/[?&]debug=1/.test(location.search) || ((document.getElementById('admin-email-input') || {}).value || '').trim()) {
           const c = window.__adminLoginErr || 'unknown';
-          const hint = /user-not-found|invalid-credential|invalid-email/.test(c) ? 'الإيميل ' + (window.ADMIN_LOGIN_EMAIL || '') + ' غير موجود في Firebase Authentication أو الباسورد غلط'
+          const hint = /user-not-found|invalid-credential|invalid-email/.test(c) ? 'بيانات الدخول غير صحيحة'
             : /wrong-password/.test(c) ? 'الباسورد غلط'
-            : /not-in-admins/.test(c) ? 'الحساب صح لكن مفيش مستند باسم الـ UID ده في collection اسمها admins'
+            : /not-in-admins/.test(c) ? 'الحساب صح لكن مش مسجّل كأدمن'
             : /too-many/.test(c) ? 'محاولات كتير، استنى شوية' : 'راجع إعدادات Firebase (Email/Password مفعّل؟ Firestore مفعّل؟)';
-          alert('تشخيص الدخول:\n' + c + '\n' + hint);
+          alert('تشخيص الدخول:\n' + String(c).split('|')[0] + '\n' + hint);
         }
-        showSupportPage(entered); return;
+        showSupportPage(); return;
       }
+      applySubAdminUi();
       refreshTabBadges();
-      setInterval(refreshTabBadges, 30000);
+      if (!window.__badgeTimer) window.__badgeTimer = setInterval(refreshTabBadges, 30000);
     };
 
-    // ═══ دخول سريع كأدمن مساعد للمستخدمين المعينين ═══
-    function quickSubAdminLogin() {
-      localStorage.setItem('sub_admin_logged', '1');
-      document.getElementById('admin-login-box').style.display = 'none';
-      document.getElementById('admin-content').style.display = 'block';
-      document.getElementById('sub-admin-notice').style.display = 'flex';
-      document.getElementById('tbtn-settings').style.display = 'none';
-      document.getElementById('tbtn-users').style.display = 'none';
-      showToast('✅ دخلت كأدمن مساعد');
-      refreshAdminStats && refreshAdminStats();
-      typeof renderAdminOrdersTable === 'function' && renderAdminOrdersTable();
-    }
-
-    // فحص هل المستخدم الحالي معيّن كأدمن مساعد
-    function checkCurrentUserIsSubAdmin() {
-      const currentUser = JSON.parse(localStorage.getItem('current_user')) || null;
-      if (!currentUser) return;
-      const allUsers = JSON.parse(localStorage.getItem('global_store_users')) || [];
-      const found = allUsers.find(u =>
-        (u.userId && u.userId == currentUser.userId) ||
-        (u.phone && u.phone === currentUser.phone)
-      );
-      const loginBox = document.getElementById('sub-admin-quick-login');
-      if (found && found.isSubAdmin && loginBox) {
-        loginBox.style.display = 'block';
-      }
-    }
-
-    // ═══ زر دخول أدمن مساعد بجانب كل مستخدم ═══
-    window.loginAsSubAdminForUser = function (userId) {
-      localStorage.setItem('sub_admin_logged', '1');
-      localStorage.setItem('sub_admin_viewing_user', userId);
-      window.location.reload();
-    };
+    // دخول الأدمن المساعد القديم (localStorage) اتلغى — الأدمن المساعد بيدخل بحساب Firebase خاص بيه (level:'sub')
+    function quickSubAdminLogin() { showToast('⛔ سجّل الدخول بحساب الأدمن المساعد الخاص بك'); }
+    window.loginAsSubAdminForUser = function () { showToast('⛔ غير متاح'); };
+    function checkCurrentUserIsSubAdmin() { /* ملغي */ }
+    try { localStorage.removeItem('sub_admin_logged'); localStorage.removeItem('sub_admin_viewing_user'); localStorage.removeItem('store_sub_admin_pass'); } catch (e) {}
 
     document.addEventListener('DOMContentLoaded', function () {
-      // فحص إذا المستخدم الحالي أدمن مساعد
-      checkCurrentUserIsSubAdmin();
-      // تحميل تلقائي
+      // تحميل تلقائي (الجداول بتتملي من بيانات الجهاز؛ البيانات الحقيقية بتيجي بعد تسجيل دخول الأدمن)
       if (typeof renderAdminGovernoratesTable === 'function') renderAdminGovernoratesTable();
       if (typeof loadWheelAdminSettings === 'function') loadWheelAdminSettings();
       if (typeof renderEnhancedAdminUsersTable === 'function') renderEnhancedAdminUsersTable();
@@ -1452,18 +1410,6 @@
       if (typeof renderAdminArchiveTable === 'function') renderAdminArchiveTable();
       if (typeof searchAdminProducts === 'function') searchAdminProducts();
       if (typeof renderSupportMessagesTable === 'function') renderSupportMessagesTable();
-      // فحص الأدمن المساعد من قبل
-      if (localStorage.getItem('sub_admin_logged') === '1') {
-        document.getElementById('admin-login-box').style.display = 'none';
-        document.getElementById('admin-content').style.display = 'block';
-        document.getElementById('sub-admin-notice').style.display = 'flex';
-        const settingsBtn = document.getElementById('tbtn-settings');
-        if (settingsBtn) settingsBtn.style.display = 'none';
-        const usersBtn = document.getElementById('tbtn-users');
-        if (usersBtn) usersBtn.style.display = 'none';
-        refreshAdminStats && refreshAdminStats();
-        typeof renderAdminOrdersTable === 'function' && renderAdminOrdersTable();
-      }
     });
   </script>
 

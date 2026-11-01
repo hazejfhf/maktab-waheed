@@ -2,50 +2,110 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
 
+    // ───────────── دوال مساعدة ─────────────
     function signedIn() { return request.auth != null; }
-    // الأدمن = حساب Firebase Auth له مستند admins/<uid> (بيتعمل يدوياً من الكونسول فقط)
-    function isAdmin() { return signedIn() && exists(/databases/$(db)/documents/admins/$(request.auth.uid)); }
-    function okStr(v, n) { return v is string && v.size() > 0 && v.size() <= n; }
 
+    // حسابات العملاء بتنتهي بالدومين ده — ممنوع أي حساب عميل يبقى أدمن حتى لو اتعمله مستند admins بالغلط
+    function isCustomerAccount() {
+      return request.auth.token.email != null
+        && request.auth.token.email.matches('.*@users\\.officeraheem\\.app');
+    }
+
+    // الأدمن = حساب Firebase Auth (مش حساب عميل) له مستند admins/<uid>.
+    // مستند admins بيتعمل يدوياً من الكونسول فقط (write: false تحت) → مفيش طريقة من الموقع لإنشاء أدمن.
+    function isAdmin() {
+      return signedIn()
+        && !isCustomerAccount()
+        && exists(/databases/$(db)/documents/admins/$(request.auth.uid));
+    }
+
+    // أدمن كامل = مستند admins/<uid> مفيهوش level='sub'. الأدمن المساعد (level='sub') يشوف ويحدّث الطلبات والتقييمات بس.
+    function isFullAdmin() {
+      return isAdmin()
+        && get(/databases/$(db)/documents/admins/$(request.auth.uid)).data.get('level', 'full') != 'sub';
+    }
+
+    function okStr(v, n) { return v is string && v.size() > 0 && v.size() <= n; }
+    function optStr(v, n) { return v is string && v.size() <= n; }
+    function okNum(v, lo, hi) { return v is number && v >= lo && v <= hi; }
+
+    // ───────────── admins ─────────────
     match /admins/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if false;
     }
 
-    match /products/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /config/{id}   { allow read: if true; allow write: if isAdmin(); }
+    // ───────────── المنتجات: قراءة للكل، كتابة للأدمن فقط + تحقق من الشكل ─────────────
+    // img لازم data:image أو https (بيمنع javascript: URL)
+    function okProduct(d) {
+      return okStr(d.title, 200)
+        && optStr(d.desc, 5000)
+        && okNum(d.price, 0, 1000000)
+        && (!('discount' in d) || okNum(d.discount, 0, 100))
+        && (!('img' in d) || (d.img is string && d.img.size() <= 900000
+              && (d.img.matches('^data:image/(png|jpeg|jpg|webp|gif);base64,.*') || d.img.matches('^https://.*'))));
+    }
+    match /products/{id} {
+      allow read: if true;
+      allow create, update: if isFullAdmin() && okProduct(request.resource.data);
+      allow delete: if isFullAdmin();
+    }
 
+    match /config/{id} {
+      allow read: if true;
+      allow write: if isFullAdmin();
+    }
+
+    // ───────────── التقييمات: لازم تسجيل دخول + حقول محددة + وقت السيرفر ─────────────
     match /reviews/{id} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasOnly(['name','text','rating','productId','createdAt','date','_fbId'])
-        && okStr(request.resource.data.name, 60)
-        && okStr(request.resource.data.text, 500)
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name','clientName','text','reviewText','rating','productId','orderId','reviewId','productDetails','clientPhone','date','reviewDate','createdAt','_fbId'])
+        && (okStr(request.resource.data.get('name', request.resource.data.get('clientName', '')), 60))
+        && (okStr(request.resource.data.get('text', request.resource.data.get('reviewText', '')), 500))
         && request.resource.data.rating is number
-        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && request.resource.data.createdAt == request.time;
       allow update, delete: if isAdmin();
     }
 
-    // الطلبات: العميل ينشئ ويتتبع بالكود فقط (get). ممنوع list/update/delete للعامة.
+    // ───────────── الطلبات ─────────────
+    // قبل: get مفتوح للكل + كود الطلب 6 أرقام بس (900 ألف احتمال) = أي حد يقدر يسحب أسماء وأرقام وعناوين العملاء.
+    // دلوقتي: قراءة للأدمن فقط. العميل بيتتبع من جهازه (الكود محفوظ عنده).
     match /orders/{id} {
-      allow get: if true;
-      allow list: if isAdmin();
-      allow create: if request.resource.data.totalNum is number
-        && request.resource.data.totalNum >= 0 && request.resource.data.totalNum < 1000000
-        && okStr(request.resource.data.orderId, 40) && request.resource.data.orderId == id
+      allow get, list: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly([
+            'orderId','id','clientName','customerName','name','clientPhone','customerPhone','phone',
+            'clientAddress','customerAddress','address','paymentMethod','payment','transferNumber',
+            'productsDetails','products','orderDate','date','orderStatus','status','finalPrice','bill','total',
+            'cartItems','items','itemsCount','timestamp','cartSnapshot','totalNum','catalogSubtotal','suspicious','createdAt'])
+        && okStr(request.resource.data.orderId, 40)
+        && request.resource.data.orderId.matches('^MAKTAB-[0-9]{6}$')
+        && request.resource.data.orderId == id
         && okStr(request.resource.data.clientName, 80)
-        && okStr(request.resource.data.clientPhone, 20)
-        && (request.resource.data.orderStatus == 'جاري التجهيز 📦');
+        && request.resource.data.clientPhone is string
+        && request.resource.data.clientPhone.matches('^01[0125][0-9]{8}$')
+        && optStr(request.resource.data.get('clientAddress', ''), 400)
+        && optStr(request.resource.data.get('productsDetails', ''), 3000)
+        && optStr(request.resource.data.get('transferNumber', ''), 40)
+        && request.resource.data.totalNum is number
+        && request.resource.data.totalNum >= 0 && request.resource.data.totalNum < 1000000
+        && request.resource.data.get('items', []).size() <= 50
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.orderStatus == 'جاري التجهيز 📦';
       allow update, delete: if isAdmin();
     }
 
-    // عدّاد أرقام الحسابات: بيزيد 1 بس، ويبدأ من 2000000
+    // ───────────── عدّاد الحسابات ─────────────
+    // (التسجيل بيحجز الرقم قبل إنشاء حساب Auth فمش ممكن نطلب signedIn هنا — راجع التقرير)
     match /counters/users {
       allow read: if true;
       allow create: if request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == 2000000;
       allow update: if request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == resource.data.n + 1;
+      allow delete: if false;
     }
 
-    // المستخدمين: كل مستخدم يقرأ/يعدّل بياناته فقط، ومقدرش يغيّر الدور/الحظر/صلاحيات العجلة
+    // ───────────── المستخدمين ─────────────
     match /users/{uid} {
       allow read: if (signedIn() && request.auth.uid == uid) || isAdmin();
       allow create: if signedIn() && request.auth.uid == uid
@@ -59,12 +119,13 @@ service cloud.firestore {
         && request.resource.data.isBanned == false;
       allow update: if (signedIn() && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','phone','lastLogin','theme'])
-        && okStr(request.resource.data.name, 80))
-        || isAdmin();
-      allow delete: if isAdmin();
+        && okStr(request.resource.data.name, 80)
+        && request.resource.data.phone is string && request.resource.data.phone.size() <= 20)
+        || isFullAdmin();
+      allow delete: if isFullAdmin();
     }
 
-    // عجلة الحظ: سحبة واحدة كل config/wheel.hours ساعة — بوقت السيرفر
+    // ───────────── عجلة الحظ ─────────────
     function wheelHours() {
       return exists(/databases/$(db)/documents/config/wheel)
         ? get(/databases/$(db)/documents/config/wheel).data.get('hours', 24) : 24;
@@ -85,9 +146,12 @@ service cloud.firestore {
         && request.resource.data.t == request.time
         && resource.data.t + duration.value(wheelHours(), 'h') <= request.time
         && spinAllowed(uid);
-      allow delete: if isAdmin();
+      allow delete: if isFullAdmin();
     }
 
     match /archive/{id} { allow read, write: if isAdmin(); }
+
+    // أي مسار تاني: ممنوع
+    match /{document=**} { allow read, write: if false; }
   }
 }

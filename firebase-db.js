@@ -37,6 +37,20 @@ const REVIEWS_COL  = "reviews";
 const CONFIG_COL   = "config";
 const ARCHIVE_COL  = "archive";
 
+// ─── تنظيف البيانات القادمة من Firestore (حماية من Stored XSS) ───────────
+// الطلبات/التقييمات/المستخدمين بيكتبها زوّار غير موثوقين، وبتتعرض في لوحة الأدمن عن طريق innerHTML.
+// أي كود HTML محقون بيتحول لنص عادي قبل ما يدخل في الصفحة أو في localStorage.
+const _ENT = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function sanitize(o, strict) {
+    if (typeof o === 'string') return o.replace(strict ? /[<>"']/g : /[<>]/g, c => _ENT[c]);
+    if (Array.isArray(o)) return o.map(x => sanitize(x, strict));
+    if (o && typeof o === 'object' && Object.getPrototypeOf(o) === Object.prototype) {
+        const r = {}; for (const k of Object.keys(o)) r[k] = sanitize(o[k], strict); return r;
+    }
+    return o; // أرقام / Timestamp / null
+}
+window.__sanitize = sanitize;
+
 // =========================================================================
 // ── الطلبات ──────────────────────────────────────────────────────────────
 // =========================================================================
@@ -92,7 +106,7 @@ window.FB_loadOrders = async function() {
     try {
         const q    = query(collection(db, ORDERS_COL), orderBy("timestamp", "desc"));
         const snap = await getDocs(q);
-        return snap.docs.map(d => d.data());
+        return snap.docs.map(d => sanitize(d.data(), true));
     } catch (e) {
         console.error("❌ خطأ في تحميل الطلبات:", e);
         return [];
@@ -103,7 +117,7 @@ window.FB_loadOrders = async function() {
 window.FB_watchOrders = function(callback) {
     const q = query(collection(db, ORDERS_COL), orderBy("timestamp", "desc"));
     return onSnapshot(q, snap => {
-        const list = snap.docs.map(d => d.data());
+        const list = snap.docs.map(d => sanitize(d.data(), true));
         callback(list);
     }, e => console.error("❌ خطأ في المراقبة:", e));
 };
@@ -112,7 +126,7 @@ window.FB_watchOrders = function(callback) {
 window.FB_watchArchive = function(callback) {
     const q = query(collection(db, ARCHIVE_COL), orderBy("archivedTimestamp", "desc"));
     return onSnapshot(q, snap => {
-        callback(snap.docs.map(d => d.data()));
+        callback(snap.docs.map(d => sanitize(d.data(), true)));
     });
 };
 
@@ -177,7 +191,7 @@ window.FB_saveUser = async function(user) {
 window.FB_loadUsers = async function() {
     try {
         const snap = await getDocs(collection(db, USERS_COL));
-        return snap.docs.map(d => ({ ...d.data(), uid: d.id }));
+        return snap.docs.map(d => ({ ...sanitize(d.data(), false), uid: d.id }));
     } catch (e) {
         console.error("❌ خطأ في تحميل المستخدمين:", e);
         return [];
@@ -214,7 +228,7 @@ window.FB_deleteReview = async function(fbId) {
 window.FB_loadReviews = async function() {
     try {
         const snap = await getDocs(collection(db, REVIEWS_COL));
-        return snap.docs.map(d => ({ ...d.data(), _fbId: d.id }));
+        return snap.docs.map(d => ({ ...sanitize(d.data(), false), _fbId: d.id }));
     } catch (e) {
         console.error("❌ خطأ في تحميل التقييمات:", e);
         return [];
@@ -327,6 +341,7 @@ async function nextUserId() {
 window.FBAuth = {
     ready: window.FB_ready,
     isAdminSession: false,
+    adminLevel: null,
     get user() { return auth.currentUser; },
 
     async register({ name, phone, password }) {
@@ -443,7 +458,13 @@ window.FBAuth = {
         const u = auth.currentUser;
         window.FBAuth.isAdminSession = false;
         if (!u) return false;
-        try { const s = await getDoc(doc(db, "admins", u.uid)); window.FBAuth.isAdminSession = s.exists(); } catch (e) {}
+        window.FBAuth.adminLevel = null;
+        try {
+            const s = await getDoc(doc(db, "admins", u.uid));
+            window.FBAuth.isAdminSession = s.exists();
+            // level: 'full' (الافتراضي) أو 'sub' (أدمن مساعد: طلبات وتقييمات فقط). القواعد على السيرفر هي اللي بتفرض ده.
+            if (s.exists()) window.FBAuth.adminLevel = (s.data() && s.data().level === 'sub') ? 'sub' : 'full';
+        } catch (e) {}
         return window.FBAuth.isAdminSession;
     }
 };

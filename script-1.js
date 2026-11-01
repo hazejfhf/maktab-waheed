@@ -519,7 +519,7 @@ function trackUserOrder() {
 
     if (foundOrder) {
         const currentStatus = foundOrder.status || foundOrder.orderStatus || "جاري المعالجة";
-        resStatus.innerHTML = `📦 وضعية الشحن الحالية: <span style="color:var(--accent-color); font-weight:bold;">${currentStatus}</span>`;
+        resStatus.innerHTML = `📦 وضعية الشحن الحالية: <span style="color:var(--accent-color); font-weight:bold;">${_esc(currentStatus)}</span>`;
         const clientName = foundOrder.customerName || foundOrder.clientName || foundOrder.name || "عميل";
         const orderDate = foundOrder.date || foundOrder.orderDate || "";
         const payment = foundOrder.paymentMethod || foundOrder.payment || "";
@@ -527,11 +527,11 @@ function trackUserOrder() {
         const bill = foundOrder.bill || foundOrder.finalPrice || foundOrder.total || "";
         let itemsNames = items.length > 0 ? items.map(i => i.title).join(' ، ') : (foundOrder.productsDetails || foundOrder.products || "");
         resDetails.innerHTML = `
-            <strong>اسم العميل:</strong> ${clientName}<br>
-            <strong>تاريخ الطلب:</strong> ${orderDate}<br>
-            <strong>طريقة السداد:</strong> ${payment}<br>
-            <strong>القطع المطلوبة:</strong> ${itemsNames}<br>
-            <strong>الفاتورة الكلية:</strong> ${bill}
+            <strong>اسم العميل:</strong> ${_esc(clientName)}<br>
+            <strong>تاريخ الطلب:</strong> ${_esc(orderDate)}<br>
+            <strong>طريقة السداد:</strong> ${_esc(payment)}<br>
+            <strong>القطع المطلوبة:</strong> ${_esc(itemsNames)}<br>
+            <strong>الفاتورة الكلية:</strong> ${_esc(bill)}
         `;
 
         if (productsContainer && items.length > 0) {
@@ -941,11 +941,11 @@ function renderAdminArchiveTable() {
     archive.forEach(function(ord, i) {
         tbody.innerHTML += `<tr>
             <td style="font-family:monospace;font-size:0.85rem;white-space:nowrap;">${_esc(ord.id || ord.orderId)} <button onclick="_adminCopy(this.dataset.c)" data-c="${_esc(ord.id||ord.orderId)}" style="background:#1b2a4a;color:#fff;border:none;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:0.7rem;">📋</button></td>
-            <td>${ord.clientName || ord.name}</td>
-            <td>${ord.clientPhone || ord.phone}</td>
-            <td>${ord.finalPrice || ord.total}</td>
+            <td>${_esc(ord.clientName || ord.name)}</td>
+            <td>${_esc(ord.clientPhone || ord.phone)}</td>
+            <td>${_esc(ord.finalPrice || ord.total)}</td>
             <td><span style="color:#1a7f4b;font-weight:bold;">تم التسليم ✅</span></td>
-            <td>${ord.archivedAt || ''}</td>
+            <td>${_esc(ord.archivedAt || '')}</td>
         </tr>`;
     });
 }
